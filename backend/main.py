@@ -27,10 +27,11 @@ class ChatRequest(BaseModel):
 async def health():
     return {"status": "alive", "vision": "ready"}
 
-@app.post("/scan")
-async def scan(frame: UploadFile = File(...)):
-    """Pi frame → objects with boxes"""
-    return
+@app.post("/capture")
+async def capture_frame(frame: UploadFile = File(..., alias="file")):
+    """Pi/webcam frame -> vision objects"""
+    content = await frame.read()
+    return f"working: {frame}!"
 
 @app.post("/chat/{object_id}")
 async def chat(object_id: str, req: ChatRequest):
