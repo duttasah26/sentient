@@ -3,13 +3,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
-from services.vision import scan_objects
-from services.backboard import chat_object
-from services.elevenlabs import generate_voice
+# from services.vision import scan_objects
+# from services.backboard import chat_object
+# from services.elevenlabs import generate_voice
 
 load_dotenv()
 
-app = FastAPI(title="", version="1.0.0")
+app = FastAPI(title="Bearhacks2026", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
