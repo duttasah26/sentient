@@ -1,0 +1,17 @@
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env*
+
+# Backend  
+backend/venv/
+backend/__pycache__/
+backend/.env*
+
+# Pi
+pi-stream/*.log
+
+# Global
+.DS_Store
+.env*
+npm-debug.log*
