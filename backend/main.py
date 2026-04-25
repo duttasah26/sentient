@@ -4,6 +4,8 @@ from fastapi.responses import StreamingResponse, Response
 from pydantic import BaseModel
 import os, io
 from dotenv import load_dotenv
+import base64
+import requests
 from elevenlabs.client import ElevenLabs
 from elevenlabs.play import play
 
@@ -14,6 +16,9 @@ client = ElevenLabs(
 )
 
 TEST_VOICE = "EXAVITQu4vr4xnSDxMaL"
+CLOUD_VISION_API_KEY = os.getenv("CLOUD_VISION_API_KEY")
+if not CLOUD_VISION_API_KEY:
+    raise RuntimeError("Missing CLOUD_VISION_API_KEY")
 
 app = FastAPI(title="Bearhacks2026", version="1.0.0")
 
@@ -41,9 +46,43 @@ async def health():
 @app.post("/capture")
 async def capture_frame(frame: UploadFile = File(..., alias="file")):
     """Pi/webcam frame -> vision objects"""
-    content = await frame.read()
+    try:
+        # Read image bytes
+        content = await frame.read()
 
-    return f"working: {frame}!"
+        # Convert to base64
+        image_base64 = base64.b64encode(content).decode("utf-8")
+
+        # Build Vision API request
+        vision_request = {
+            "requests": [
+                {
+                    "image": {
+                        "content": image_base64
+                    },
+                    "features": [
+                        {
+                            "type": "OBJECT_LOCALIZATION",  # 👈 gives bounding boxes
+                            "maxResults": 10
+                        }
+                    ]
+                }
+            ]
+        }
+
+        # Call Google Vision API
+        response = requests.post(
+            f"https://vision.googleapis.com/v1/images:annotate?key={CLOUD_VISION_API_KEY}",
+            json=vision_request
+        )
+
+        result = response.json()
+        print(result)
+
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/chat/{object_id}")
 async def chat(object_id: str, req: ChatRequest):
