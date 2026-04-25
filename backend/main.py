@@ -8,11 +8,19 @@ from elevenlabs.client import ElevenLabs
 from ultralytics import YOLO
 from PIL import Image
 import numpy as np
+from backboard import BackboardClient
+from typing import Dict, Optional
 
 load_dotenv()
 
-elevenlabs_client = ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"))
+elvn_client = ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"))
+backboard_client = BackboardClient(api_key=os.getenv("BACKBOARD_API_KEY"))
+
+object_assistants: Dict[str, str] = {}
+object_threads: Dict[str, str] = {}
+TEST_VOICE = "EXAVITQu4vr4xnSDxMaL"
 CLOUD_VISION_API_KEY = os.getenv("CLOUD_VISION_API_KEY")
+
 if not CLOUD_VISION_API_KEY:
     raise RuntimeError("Missing CLOUD_VISION_API_KEY")
 
@@ -199,7 +207,7 @@ async def chat(object_id: str, req: ChatRequest):
 @app.post("/tts/{object_id}")
 async def tts(object_id: str, req: TTSRequest):
     try:
-        audio_generator = elevenlabs_client.text_to_speech.convert(
+        audio_generator = elvn_client.text_to_speech.convert(
             text=req.text,
             voice_id="qhH5VOAvpCwvNpmn2srO",
             model_id="eleven_turbo_v2",
