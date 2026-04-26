@@ -12,6 +12,10 @@ import {
   WindowsXPSound,
   WindowsXPLogOff,
   WindowsXPDiskDefragmenter,
+  WindowsXPConfiguration,
+  WindowsXPMyDocuments,
+  WindowsXPMail,
+  AdministrativeToolsXP,
   MSNMessenger,
 } from 'react-old-icons';
 
@@ -204,6 +208,108 @@ function XPSunken({ children, style }) {
   );
 }
 
+// ── Object Monitor feed panel ─────────────────────────────────────────────────
+function ObjectFeedPanel({ allObjects, liveObjects, feedLog, objectMessages, activeLabel }) {
+  const liveSet  = new Set(liveObjects.map(o => o.label));
+  const logEndRef = useRef(null);
+
+  useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [feedLog]);
+
+  const onlineObjs  = liveObjects;
+  const offlineObjs = allObjects.filter(o => !liveSet.has(o.yolo_label));
+
+  return (
+    <XPWindow title="Object Monitor" icon={MSNMessenger} style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+      {/* Status strip */}
+      <div style={{ background: '#d4d0c8', borderBottom: '1px solid #808080', borderTop: '1px solid #fff', padding: '2px 8px', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'Tahoma, sans-serif', fontSize: 10, flexShrink: 0 }}>
+        <span style={{ width: 7, height: 7, borderRadius: '50%', background: liveObjects.length > 0 ? XP.statusGreen : XP.statusGray, boxShadow: liveObjects.length > 0 ? '0 0 5px #00cc00' : 'none', display: 'inline-block' }}/>
+        <span style={{ color: XP.textDark }}>{liveObjects.length} online · {allObjects.length} registered</span>
+      </div>
+
+      {/* Contact list */}
+      <div style={{ flex: 1, overflowY: 'auto', background: XP.windowInner, fontFamily: 'Tahoma, "MS Sans Serif", sans-serif', fontSize: 11 }}>
+        {/* Online section */}
+        <div style={{ background: 'linear-gradient(180deg,#e0ecf8 0%,#ccdcf0 100%)', borderBottom: '1px solid #b0c4dc', padding: '2px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: '#1a3a6a' }}>Online ({onlineObjs.length})</span>
+        </div>
+
+        {onlineObjs.length === 0 && (
+          <div style={{ padding: '10px 8px', fontSize: 10, color: XP.textMid, fontStyle: 'italic', textAlign: 'center' }}>
+            <OldIcon Icon={WindowsXPMagnify} size={18} style={{ margin: '0 auto 4px' }} /><br />
+            Scanning for objects…
+          </div>
+        )}
+
+        {onlineObjs.map(obj => {
+          const lastMsg = objectMessages[obj.label];
+          const isActive = activeLabel === obj.label;
+          return (
+            <div key={obj.label} style={{ padding: '5px 8px 6px', borderBottom: '1px solid #eceae6', background: isActive ? '#dce8f8' : 'transparent', transition: 'background 150ms' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: XP.statusGreen, boxShadow: '0 0 6px #00cc00', animation: 'onlinePulse 2s ease-in-out infinite', flexShrink: 0 }}/>
+                <OldIcon Icon={WindowsXPUsers} size={13} />
+                <span style={{ fontWeight: 700, color: XP.textDark, fontSize: 11, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{obj.name || obj.label}</span>
+                {isActive && <span style={{ fontSize: 9, color: '#000080', flexShrink: 0 }}>💬</span>}
+              </div>
+              {lastMsg?.role === 'assistant' && (
+                <div style={{ marginLeft: 20, marginTop: 3, background: '#fffde7', border: '1px solid #c8b400', borderRadius: '0 5px 5px 5px', padding: '3px 7px', fontSize: 10, color: XP.textDark, fontStyle: 'italic', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                  {lastMsg.text}
+                </div>
+              )}
+              {isActive && !lastMsg && (
+                <div style={{ marginLeft: 20, marginTop: 3, fontSize: 10, color: XP.textMid, animation: 'blink 1s step-start infinite' }}>typing…</div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Offline section */}
+        {offlineObjs.length > 0 && <>
+          <div style={{ background: '#e8e4e0', borderBottom: '1px solid #c8c4c0', borderTop: '1px solid #f0eee8', padding: '2px 8px' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: XP.textMid }}>Offline ({offlineObjs.length})</span>
+          </div>
+          {offlineObjs.map(obj => (
+            <div key={obj.yolo_label} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 8px', borderBottom: '1px solid #eeecec', opacity: 0.6 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#808080', flexShrink: 0 }}/>
+              <OldIcon Icon={WindowsXPUsers} size={13} style={{ opacity: 0.5 }} />
+              <span style={{ color: XP.textMid, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{obj.name || obj.yolo_label}</span>
+            </div>
+          ))}
+        </>}
+
+        {allObjects.length === 0 && liveObjects.length === 0 && (
+          <div style={{ padding: 16, textAlign: 'center', color: XP.textMid, fontSize: 11 }}>
+            <OldIcon Icon={WindowsXPLogOff} size={24} style={{ margin: '0 auto 6px' }} /><br />
+            No objects registered
+          </div>
+        )}
+      </div>
+
+      {/* Green terminal event log */}
+      <div style={{ background: '#060a06', borderTop: '2px inset #7f9db9', padding: '4px 6px', height: 130, overflowY: 'auto', fontFamily: '"Courier New", Courier, monospace', fontSize: 9, lineHeight: 1.65, flexShrink: 0 }}>
+        <div style={{ color: '#00aa00', marginBottom: 2, fontSize: 8, letterSpacing: '0.05em' }}>C:\SENTIENT\EVENTS.LOG</div>
+        {feedLog.length === 0
+          ? <div style={{ color: '#004400' }}>_</div>
+          : feedLog.map(e => (
+            <div key={e.id} style={{ color: e.type === 'online' ? '#00ff41' : '#ff5050' }}>
+              <span style={{ color: '#555' }}>[{e.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}]</span>
+              {' '}{e.type === 'online' ? '+' : '-'} {e.name}
+            </div>
+          ))
+        }
+        <div ref={logEndRef}/>
+      </div>
+
+      {/* Scrolling ticker */}
+      <div style={{ background: XP.taskbarBg, borderTop: '1px solid rgba(0,0,0,0.3)', overflow: 'hidden', height: 18, flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+        <div style={{ whiteSpace: 'nowrap', animation: 'marquee 22s linear infinite', fontFamily: 'Tahoma, sans-serif', fontSize: 9, color: 'rgba(255,255,255,0.75)', paddingLeft: '100%' }}>
+          Sentient v2.0 — BearHacks 2026 — Object AI system nominal — Vision API active — Backboard agents online — All entities reporting — System status: OK — Sentient v2.0 — BearHacks 2026
+        </div>
+      </div>
+    </XPWindow>
+  );
+}
+
 function LiveCanvas({ videoRef, objects, onClickObject }) {
   const canvasRef = useRef(null);
   const animRef   = useRef(null);
@@ -269,7 +375,7 @@ function LiveCanvas({ videoRef, objects, onClickObject }) {
   return <canvas ref={canvasRef} onClick={handleClick} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', cursor: 'crosshair' }} />;
 }
 
-function ConversationDrawer({ object, onClose }) {
+function ConversationDrawer({ object, onClose, onNewMessage }) {
   const { connect, disconnect, send, messages, status, objectMeta, transcript, setTranscript, listening, startListening, stopListening, browserSRSupported } = useConversation(object?.label ?? '');
   const [started, setStarted] = useState(false);
   const bottomRef = useRef(null);
@@ -278,6 +384,12 @@ function ConversationDrawer({ object, onClose }) {
 
   useEffect(() => { return () => disconnect(); }, []);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
+  useEffect(() => {
+    if (messages.length > 0 && onNewMessage) {
+      onNewMessage(object.label, messages[messages.length - 1]);
+    }
+  }, [messages]);
 
   const handleTalk = () => { setStarted(true); connect(); };
   const handleSend = () => {
@@ -416,13 +528,47 @@ function ConversationDrawer({ object, onClose }) {
 
 export default function App() {
   const { videoRef, status, start, stop, captureFrame } = useCamera();
-  const [objects,      setObjects]      = useState([]);
-  const [flash,        setFlash]        = useState(false);
-  const [activeObject, setActiveObject] = useState(null);
-  const [identifying,  setIdentifying]  = useState(false);
-  const polling      = useRef(false);
-  const timerRef     = useRef(null);
-  const containerRef = useRef(null);
+  const [objects,        setObjects]        = useState([]);
+  const [allObjects,     setAllObjects]     = useState([]);
+  const [feedLog,        setFeedLog]        = useState([]);
+  const [objectMessages, setObjectMessages] = useState({});
+  const [flash,          setFlash]          = useState(false);
+  const [activeObject,   setActiveObject]   = useState(null);
+  const [identifying,    setIdentifying]    = useState(false);
+  const polling           = useRef(false);
+  const timerRef          = useRef(null);
+  const containerRef      = useRef(null);
+  const prevLabelsRef     = useRef(new Set());
+
+  // Fetch all registered objects (for the feed panel offline list)
+  useEffect(() => {
+    const load = () => fetch(`${BACKEND}/objects`).then(r => r.json()).then(d => setAllObjects(d.objects ?? [])).catch(() => {});
+    load();
+    const t = setInterval(load, 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Build event log from detection changes
+  useEffect(() => {
+    const prev = prevLabelsRef.current;
+    const currMap = new Map(objects.map(o => [o.label, o]));
+    const events = [];
+    for (const [label, obj] of currMap) {
+      if (!prev.has(label)) events.push({ id: `${Date.now()}-${label}`, time: new Date(), type: 'online',  label, name: obj.name || label });
+    }
+    for (const label of prev) {
+      if (!currMap.has(label)) {
+        const name = allObjects.find(o => o.yolo_label === label)?.name || label;
+        events.push({ id: `${Date.now()}-${label}-off`, time: new Date(), type: 'offline', label, name });
+      }
+    }
+    if (events.length > 0) setFeedLog(prev => [...prev, ...events].slice(-60));
+    prevLabelsRef.current = new Set(objects.map(o => o.label));
+  }, [objects]);
+
+  const handleNewMessage = useCallback((label, msg) => {
+    setObjectMessages(prev => ({ ...prev, [label]: msg }));
+  }, []);
 
   const triggerFlash = () => { setFlash(true); setTimeout(() => setFlash(false), 120); };
 
@@ -467,10 +613,12 @@ export default function App() {
   }, [status, captureFrame]);
 
   return (
-    <div style={{ minHeight: '100dvh', background: `${XP.bgPattern}, linear-gradient(180deg, #1f8dd6 0%, #3a9de6 8%, #58b0f0 12%, #3a9de6 100%)`, backgroundSize: '4px 4px, 100% 100%', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: '100dvh', overflow: 'hidden', background: `${XP.bgPattern}, linear-gradient(180deg, #1f8dd6 0%, #3a9de6 8%, #58b0f0 12%, #3a9de6 100%)`, backgroundSize: '4px 4px, 100% 100%', display: 'flex', flexDirection: 'column' }}>
       <style>{`
         @keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
         @keyframes slide-in-right{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+        @keyframes onlinePulse{0%,100%{box-shadow:0 0 3px #00cc00}50%{box-shadow:0 0 9px #00ff41,0 0 16px #00cc0066}}
+        @keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
       `}</style>
 
       {/* Taskbar */}
@@ -508,12 +656,24 @@ export default function App() {
       </div>
 
       {/* Desktop */}
-      <main style={{ flex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 16 }}>
+      <main style={{ flex: 1, minHeight: 0, display: 'flex', gap: 10, padding: '10px 14px', alignItems: 'stretch', overflow: 'hidden' }}>
+        {/* Left: Object Monitor */}
+        <div style={{ width: 210, flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          <ObjectFeedPanel
+            allObjects={allObjects}
+            liveObjects={objects}
+            feedLog={feedLog}
+            objectMessages={objectMessages}
+            activeLabel={activeObject?.label}
+          />
+        </div>
+
+        {/* Right: Camera window */}
         <XPWindow
           title="00.sentient.org"
           icon={WindowsXPMovieMaker}
           resizable
-          style={{ width: '100%', maxWidth: 860 }}
+          style={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}
           titleExtra={
             <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontFamily: 'Tahoma, sans-serif', marginLeft: 8 }}>
               {status === 'live' ? `● ${objects.length} object(s) detected` : ''}
@@ -535,7 +695,7 @@ export default function App() {
           </div>
 
           {/* Video */}
-          <div ref={containerRef} style={{ position: 'relative', margin: 8, background: '#000', border: '2px inset #7f9db9', boxShadow: 'inset 1px 1px 4px rgba(0,0,0,0.6)', aspectRatio: '16/9', overflow: 'hidden' }}>
+          <div ref={containerRef} style={{ position: 'relative', margin: '0 6px 6px', flex: 1, minHeight: 0, background: '#000', border: '2px inset #7f9db9', boxShadow: 'inset 1px 1px 4px rgba(0,0,0,0.6)', overflow: 'hidden' }}>
             <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             {status === 'live' && <LiveCanvas videoRef={videoRef} objects={objects} onClickObject={handleObjectClick} />}
 
@@ -566,7 +726,7 @@ export default function App() {
         </XPWindow>
       </main>
 
-      {activeObject && <ConversationDrawer object={activeObject} onClose={() => setActiveObject(null)} />}
+      {activeObject && <ConversationDrawer object={activeObject} onClose={() => setActiveObject(null)} onNewMessage={handleNewMessage} />}
     </div>
   );
 }
