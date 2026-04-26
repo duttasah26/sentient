@@ -1,99 +1,51 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne+Mono&family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+/* index.css — Sentient BearHacks 2026 */
 
-:root {
-  /* Colors */
-  --color-bg:             #111110;
-  --color-surface:        #181816;
-  --color-surface-2:      #1e1d1b;
-  --color-surface-offset: #242320;
-  --color-border:         #2e2d2a;
-  --color-divider:        #222220;
-  --color-primary:        #e8883a;
-  --color-primary-dim:    rgba(232,136,58,0.12);
-  --color-text:           #e8e5df;
-  --color-text-muted:     #8a8880;
-  --color-text-faint:     #4a4845;
-  --color-error:          #e85a5a;
-  --color-success:        #4ade80;
-
-  /* Typography */
-  --font-display: 'Playfair Display', Georgia, serif;
-  --font-mono:    'Syne Mono', 'Courier New', monospace;
-  --font-body:    'DM Sans', system-ui, sans-serif;
-
-  /* Sizes */
-  --text-xs:   11px;
-  --text-sm:   13px;
-  --text-base: 15px;
-  --text-lg:   18px;
-  --text-xl:   22px;
-  --text-2xl:  28px;
-
-  /* Spacing */
-  --space-1: 4px;  --space-2: 8px;   --space-3: 12px;
-  --space-4: 16px; --space-5: 20px;  --space-6: 24px;
-  --space-8: 32px; --space-16: 64px;
-
-  /* Radii */
-  --radius-sm:   4px;
-  --radius-md:   8px;
-  --radius-lg:   12px;
-  --radius-xl:   16px;
-  --radius-full: 9999px;
-
-  /* Shadows */
-  --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
-
-  /* Transitions */
-  --transition-interactive: 150ms ease;
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
 body {
-  font-family: var(--font-body);
-  background: var(--color-bg);
-  color: var(--color-text);
+  font-family: Tahoma, "MS Sans Serif", Arial, sans-serif;
+  background: #008080; /* XP teal fallback before React mounts */
   min-height: 100dvh;
-  /* Scanline overlay */
-  background-image: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0,0,0,0.04) 2px,
-    rgba(0,0,0,0.04) 4px
-  );
+  overflow-x: hidden;
 }
 
-button { font-family: var(--font-body); }
-
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: var(--color-surface); }
-::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
-
-@keyframes pulse-ring {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.4; transform: scale(1.15); }
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.2; }
 }
-@keyframes breathe {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(232,136,58,0.4); }
-  50%       { box-shadow: 0 0 0 8px rgba(232,136,58,0); }
-}
+
 @keyframes slide-in-right {
   from { transform: translateX(100%); opacity: 0; }
   to   { transform: translateX(0);    opacity: 1; }
 }
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position:  200% 0; }
 }
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0; }
+
+@keyframes breathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232, 136, 58, 0.4); }
+  50%       { box-shadow: 0 0 0 6px rgba(232, 136, 58, 0); }
 }
+
+/* Scrollbar — XP style */
+::-webkit-scrollbar       { width: 16px; }
+::-webkit-scrollbar-track { background: #d4d0c8; border: 1px solid #a8a8a8; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #e8e4d8 0%, #d4d0c8 100%);
+  border: 1px solid #808080;
+  border-top-color: #ffffff;
+  border-left-color: #ffffff;
+}
+::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #f0ece4 0%, #dcd8cc 100%); }
+::-webkit-scrollbar-button      { display: none; }
