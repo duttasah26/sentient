@@ -3,5 +3,5 @@ CLOUD_VISION_API_KEY=AIzaSyAax3RQgU4y5eSGSnK-QcF9TEcCr8R82dg
 BACKBOARD_API_KEY=espr_EZTM3de5BS8_PXscxIxJhY-51NJ86fylzEYhk3QqZRw
 MONGODB_URI=mongodb+srv://admin:admin@reports.vwdpjes.mongodb.net/?appName=reports
 MONGODB_DB=bearhacks
-MONGODB_COLLECTION=objects
+MONGODB_COLLECTION=bearhacks
  
