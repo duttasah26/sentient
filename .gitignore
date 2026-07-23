@@ -15,3 +15,10 @@ pi-stream/*.log
 .DS_Store
 .env*
 npm-debug.log*
+
+# Claude Code
+.claude/
+CLAUDE.md
+
+# Local-only docs
+ARCHITECTURE.md

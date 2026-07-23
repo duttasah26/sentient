@@ -4,24 +4,23 @@ const BACKEND    = 'http://localhost:8000';
 const BACKEND_WS = 'ws://localhost:8000';
 
 export function useConversation(yoloLabel) {
-  const wsRef    = useRef(null);
-  const audioRef = useRef(null);
-  // Speech Recognition
-  const srRef      = useRef(null);   // SpeechRecognition instance
-  const mediaRef   = useRef(null);   // MediaRecorder (ElevenLabs fallback)
+  const wsRef      = useRef(null);
+  const audioRef   = useRef(null);
+  const srRef      = useRef(null);
+  const mediaRef   = useRef(null);
   const chunksRef  = useRef([]);
 
-  const [status,      setStatus]      = useState('idle');
-  const [messages,    setMessages]    = useState([]);
-  const [objectMeta,  setObjectMeta]  = useState(null);
-  const [transcript,  setTranscript]  = useState('');   // ← live transcript
-  const [listening,   setListening]   = useState(false);
+  const [status,     setStatus]     = useState('idle');
+  const [messages,   setMessages]   = useState([]);
+  const [objectMeta, setObjectMeta] = useState(null);
+  const [transcript, setTranscript] = useState('');
+  const [listening,  setListening]  = useState(false);
 
   const appendMessage = useCallback((role, text) => {
     setMessages(prev => [...prev, { role, text, id: Date.now() + Math.random() }]);
   }, []);
 
-  // ── WebSocket ────────────────────────────────────────────────────────────
+  // ── WebSocket ─────────────────────────────────────────────────────────────
   const connect = useCallback(() => {
     if (wsRef.current) return;
     setStatus('connecting');
@@ -41,21 +40,35 @@ export function useConversation(yoloLabel) {
         appendMessage('assistant', msg.full);
         setStatus('speaking');
         try {
-          const res        = await fetch(`${BACKEND}/tts/${yoloLabel}`, {
-            method: 'POST',
+          const res = await fetch(`${BACKEND}/tts/${yoloLabel}`, {
+            method:  'POST',
             headers: { 'Content-Type': 'application/json' },
             body:    JSON.stringify({ message: msg.full }),
           });
+          if (!res.ok) throw new Error(`TTS ${res.status}`);
           const blob = await res.blob();
           const url  = URL.createObjectURL(blob);
+
+          // Stop any currently playing audio
           if (audioRef.current) {
             audioRef.current.pause();
             URL.revokeObjectURL(audioRef.current.src);
           }
-          const audio       = new Audio(url);
-          audioRef.current  = audio;
-          audio.onended = () => { setStatus('ready'); URL.revokeObjectURL(url); };
-          audio.play();
+
+          const audio      = new Audio(url);
+          audioRef.current = audio;
+
+          // All exit paths (success, error, blocked autoplay) must reset status
+          const reset = () => {
+            setStatus('ready');
+            try { URL.revokeObjectURL(url); } catch {}
+          };
+          audio.onended = reset;
+          audio.onerror = reset;
+
+          const playPromise = audio.play();
+          // play() returns a Promise; if blocked by browser, catch to avoid uncaught rejection
+          if (playPromise !== undefined) playPromise.catch(reset);
         } catch {
           setStatus('ready');
         }
@@ -64,14 +77,14 @@ export function useConversation(yoloLabel) {
       if (msg.type === 'error') setStatus('error');
     };
 
-    ws.onerror = ()  => setStatus('error');
-    ws.onclose = ()  => { wsRef.current = null; setStatus('idle'); };
+    ws.onerror = () => setStatus('error');
+    ws.onclose = () => { wsRef.current = null; setStatus('idle'); };
   }, [yoloLabel, appendMessage]);
 
   const disconnect = useCallback(() => {
     wsRef.current?.close();
     wsRef.current = null;
-    audioRef.current?.pause();
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
     srRef.current?.abort();
     mediaRef.current?.stop();
     setStatus('idle');
@@ -79,6 +92,15 @@ export function useConversation(yoloLabel) {
     setObjectMeta(null);
     setTranscript('');
     setListening(false);
+  }, []);
+
+  // Interrupt currently playing TTS and return to ready
+  const stopSpeaking = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    setStatus(prev => (prev === 'speaking' ? 'ready' : prev));
   }, []);
 
   const send = useCallback((text) => {
@@ -90,50 +112,52 @@ export function useConversation(yoloLabel) {
     wsRef.current.send(JSON.stringify({ message: trimmed }));
   }, [appendMessage]);
 
-  // ── Speech Recognition (Web Speech API — real-time) ──────────────────────
+  // ── Speech Recognition ────────────────────────────────────────────────────
   const browserSRSupported = typeof window !== 'undefined' &&
     ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
 
   const startListening = useCallback(async () => {
     if (listening) return;
 
-    // ── Path A: Web Speech API (Chrome/Edge — real-time, zero latency) ──
+    // Path A: Web Speech API (Chrome/Edge — live interim results)
     if (browserSRSupported) {
-      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const sr = new SR();
-      sr.continuous      = true;   // keep listening until we call stop()
-      sr.interimResults  = true;   // fire events with partial results
-      sr.lang            = 'en-US';
-      srRef.current      = sr;
+      try {
+        const SR = (/** @type {any} */ (window)).SpeechRecognition || (/** @type {any} */ (window)).webkitSpeechRecognition;
+        const sr = new SR();
+        sr.continuous     = true;
+        sr.interimResults = true;
+        sr.lang           = 'en-US';
+        srRef.current     = sr;
 
-      sr.onresult = (e) => {
-        let interim = '';
-        let final   = '';
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-          const t = e.results[i][0].transcript;
-          if (e.results[i].isFinal) final += t;
-          else interim += t;
-        }
-        // Show live interim text in the input box
-        setTranscript(prev => {
-          const base = prev.replace(/\s*\[.*\]$/, ''); // strip old interim tag
-          return (base + final + (interim ? ` [${interim}]` : '')).trimStart();
-        });
-      };
+        sr.onresult = (e) => {
+          let interim = '', final = '';
+          for (let i = e.resultIndex; i < e.results.length; i++) {
+            const t = e.results[i][0].transcript;
+            if (e.results[i].isFinal) final += t;
+            else interim += t;
+          }
+          setTranscript(prev => {
+            const base = prev.replace(/\s*\[.*\]$/, '');
+            return (base + final + (interim ? ` [${interim}]` : '')).trimStart();
+          });
+        };
 
-      sr.onerror = (e) => {
-        console.error('SR error', e.error);
+        sr.onerror = (e) => {
+          console.error('SR error:', e.error);
+          setListening(false);
+        };
+        sr.onend = () => setListening(false);
+
+        sr.start();
+        setListening(true);
+      } catch (err) {
+        console.error('SpeechRecognition start failed:', err);
         setListening(false);
-      };
-
-      sr.onend = () => setListening(false);
-
-      sr.start();
-      setListening(true);
+      }
       return;
     }
 
-    // ── Path B: ElevenLabs /stt fallback (non-Chrome browsers) ──────────
+    // Path B: ElevenLabs /stt fallback (Firefox, Safari)
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mr     = new MediaRecorder(stream);
@@ -151,7 +175,7 @@ export function useConversation(yoloLabel) {
           const data = await res.json();
           if (data.text?.trim()) setTranscript(data.text.trim());
         } catch (err) {
-          console.error('STT fallback error', err);
+          console.error('STT fallback error:', err);
         }
         setListening(false);
       };
@@ -160,7 +184,7 @@ export function useConversation(yoloLabel) {
       mediaRef.current = mr;
       setListening(true);
     } catch (err) {
-      console.error('Mic access denied', err);
+      console.error('Mic access denied:', err);
     }
   }, [listening, browserSRSupported]);
 
@@ -168,7 +192,6 @@ export function useConversation(yoloLabel) {
     if (srRef.current) {
       srRef.current.stop();
       srRef.current = null;
-      // Clean up interim tag, leave final clean text
       setTranscript(prev => prev.replace(/\s*\[.*\]$/, '').trim());
     }
     if (mediaRef.current) {
@@ -180,15 +203,15 @@ export function useConversation(yoloLabel) {
 
   useEffect(() => () => {
     wsRef.current?.close();
-    audioRef.current?.pause();
+    if (audioRef.current) audioRef.current.pause();
     srRef.current?.abort();
     mediaRef.current?.stop();
   }, []);
 
   return {
-    connect, disconnect, send,
+    connect, disconnect, send, stopSpeaking,
     messages, status, objectMeta,
-    transcript, setTranscript,   // ← expose so input can be typed too
+    transcript, setTranscript,
     listening, startListening, stopListening,
     browserSRSupported,
   };
