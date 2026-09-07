@@ -1,4 +1,4 @@
-# Sentient -- BearHacks 2026
+# Sentient -- Best Use Of ElevenLabs @ BearHacks 2026 
 
 Point a camera at a room and every object in it becomes a character. YOLOv8 + MiDaS detect objects and estimate depth, each object gets its own persistent AI personality via a [Backboard.io](https://backboard.io) agent (memory carries across sessions), and [ElevenLabs](https://elevenlabs.io) gives it a voice. Tap an object in the live feed to open a real-time chat or voice conversation with it.
 
